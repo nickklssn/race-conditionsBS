@@ -6,11 +6,14 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.Semaphore
 import java.lang.Thread
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var textView: TextView
     private var counter = 0
+    private var lock = ReentrantLock()
 
 
     // Bedingungen für die einzelnen Threads
@@ -21,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private var semo = Semaphore(1,true)
 
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -28,12 +32,13 @@ class MainActivity : AppCompatActivity() {
         textView = findViewById(R.id.counterView)
 
 
+
         // Alle 4 Thread arbeiten parallel zueinander und haben daher jeweils Lese -und Schreibezugriff auf den Counter
         // Da alle Threads dieselbe Priorität haben, entscheidet das BS, wie die Threads ablaufen
 
 
         // Methode 1: Jeder Thread setzt den State einer Variablen auf false, damit der nächste Thread laufen kann
-       /* Thread {
+        /* Thread {
             for (i in 1..150000) counter += 1
 
 
@@ -73,13 +78,12 @@ class MainActivity : AppCompatActivity() {
     }*/
 
 
-
         // 2. Methode: Benutzen von Semaphoren
         // Ein Semaphor hat eine bestimmte Anzahl an permits (Anzahl an Ausführungen)
         // Nur ein Thread kann diesen Permit beanspruchen (semo.aquire)
         // Ist der Thread fertig mit der Ausführung, gibt er diesen Permit ab (semo.release)
 
-            Thread {
+        /*Thread {
 
                 semo.acquire()
                 for (i in 1..150000) counter += 1
@@ -128,7 +132,53 @@ class MainActivity : AppCompatActivity() {
                 counter -= 1
                 textView.text = counter.toString()
                 semo.release()
-                    }.start()
+                    }.start()*/
+
+
+        // Methode 3: Thread locken und unlocken
+        Thread {
+
+            lock.lock()
+            for (i in 1..150000) counter += 1
+            for (i in 1..150000) counter -= 1
+            textView.text = counter.toString()
+            lock.unlock()
+        }.start()
+
+
+
+        Thread {
+
+            lock.lock()
+            for (i in 1..150000) counter -= 1
+            textView.text = counter.toString()
+            for (i in 1..150000) counter += 1
+            lock.unlock()
+        }.start()
+
+
+
+        Thread {
+
+            lock.lock()
+            for (i in 1..150000) counter -= 1
+            counter += 1
+            textView.text = counter.toString()
+            lock.unlock()
+
+        }.start()
+
+
+
+
+        Thread {
+            lock.lock()
+            for (i in 1..150000) counter += 1
+            counter -= 1
+            textView.text = counter.toString()
+            lock.unlock()
+        }.start()
+
     }
 }
 
